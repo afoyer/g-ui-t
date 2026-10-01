@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# G-ui-t
 
-## Getting Started
+Design together without learning Git. A proof-of-concept built from the G-ui-t mockups (directions 1a + 1b).
 
-First, run the development server:
+| G-ui-t says | Git does |
+|---|---|
+| Current | `main` (the default branch) |
+| Start Change | create a branch |
+| Checkpoint (auto-saved after 20s idle) | commit |
+| Share for Review | open a pull request |
+| Approve / Request changes | pull-request review |
+| Add to Current | merge the pull request |
+| Restore | new commit with an older tree (history kept) |
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Every project is a private GitHub repo under the creator's account. Supabase stores app data (projects, Changes, pinned comments, reviews, activity) and pushes live updates. Sandpack runs the editor and live preview in the browser.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Supabase.** Create a project, then copy `.env.local.example` to `.env.local` and fill in the project URL and anon key.
+2. **Database.** Paste `supabase/migrations/0001_init.sql` into the Supabase SQL editor and run it.
+3. **GitHub OAuth app.** Go to GitHub, then Settings → Developer settings → OAuth Apps → New.
+   - Homepage URL: `http://localhost:3000`
+   - Callback URL: `https://<your-project>.supabase.co/auth/v1/callback`
+4. **Enable GitHub sign-in.** In Supabase, open Authentication → Sign In / Providers → GitHub, enable it, and paste the client ID and secret.
+5. **Allow the redirect.** In Supabase, open Authentication → URL Configuration and add `http://localhost:3000/auth/callback` to the redirect URLs.
+6. Run `npm install && npm run dev`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To try collaboration, you need a second GitHub account, for example in a private window.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+- `npm run dev` starts the dev server.
+- `npm test` runs the unit tests (Vitest).
+- `npm run lint` and `npm run build`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Layout
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `app/(shell)` holds the sidebar screens: Home, Projects, Reviews, Activity, and Project Overview / Changes / People / History.
+- `app/(focus)` holds the full-window screens: New Project, Join, the Change workspace, Review, Preview and Compare.
+- `lib/github/repo.ts` contains all GitHub operations.
+- `lib/overlap.ts` detects when two people are editing the same component.
+- `templates/` has the starter files for Prototype, Website and Blank.
+- `supabase/migrations` has the schema and row-level security.
 
-## Deploy on Vercel
+## Known limits
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- GitHub events that happen outside the app, such as a direct `git push`, show up on the next page load, not live.
+- There is no merge-conflict UI. Conflicts show a message that points to GitHub.
+- Web app and Component library project types are not supported yet, because Sandpack can't run Next.js or Storybook.
