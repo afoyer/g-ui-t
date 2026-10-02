@@ -42,7 +42,7 @@ export default async function ReviewPage({ params }: PageProps<"/p/[id]/c/[chang
         members={members}
         whatChanged={whatChanged}
       />
-      <LiveRefresh projectIds={[id]} changeId={changeId} />
+      <LiveRefresh projectIds={[id]} changeId={changeId} meId={me.id} />
     </>
   );
 }

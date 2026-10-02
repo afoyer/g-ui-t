@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { DURATION, EASE_OUT, SPRING } from "@/lib/motion";
+import { useFeedback } from "@/components/motion/feedback-provider";
+import { ActionLabel } from "@/components/motion/spinner";
 import { TopBar } from "@/components/top-bar";
 import { Avatar, Chip, firstName, StatusBadge, timeAgo } from "@/components/ui";
 import { PreviewOnly } from "@/components/workspace/preview-only";
-import { ViewportFrame, ViewportToggle, type Viewport } from "@/components/workspace/viewport";
+import { Segmented, ViewportFrame, ViewportToggle, type Viewport } from "@/components/workspace/viewport";
 import type { Change, Comment, FileMap, Profile, ReviewRequest, Role } from "@/lib/types";
 import { addComment, addToCurrent, review } from "./actions";
 
@@ -34,6 +38,8 @@ export function ReviewScreen(props: Props) {
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [busy, setBusy] = useState<"comment" | "approve" | "changes" | "merge" | null>(null);
+  const { toast } = useFeedback();
 
   const people = new Map(members.map((m) => [m.id, m]));
   const author = people.get(change.author_id);
@@ -60,19 +66,33 @@ export function ReviewScreen(props: Props) {
     document.getElementById("comment-box")?.focus();
   }
 
-  function run(fn: () => Promise<{ error?: string } | undefined>, after?: () => void) {
+  function run(
+    what: NonNullable<typeof busy>,
+    fn: () => Promise<{ error?: string } | undefined>,
+    success: { title: string; description?: string },
+    after?: () => void,
+  ) {
     setError(null);
+    setBusy(what);
     startTransition(async () => {
       const res = await fn();
-      if (res?.error) setError(res.error);
-      else after?.();
+      setBusy(null);
+      if (res?.error) {
+        setError(res.error);
+        toast({ tone: "error", title: "That didn't work", description: res.error });
+      } else {
+        toast({ tone: "success", ...success });
+        after?.();
+      }
     });
   }
 
   function submitComment(e: React.FormEvent) {
     e.preventDefault();
     run(
+      "comment",
       () => addComment(project.id, change.id, text, draftPin),
+      { title: draftPin ? "Comment pinned" : "Comment added" },
       () => {
         setText("");
         setDraftPin(null);
@@ -109,16 +129,16 @@ export function ReviewScreen(props: Props) {
         <div className="flex min-w-0 flex-1 flex-col gap-2.5 bg-stage p-[18px]">
           <div className="flex items-center gap-2">
             <ViewportToggle value={viewport} onChange={setViewport} />
-            <div className="ml-auto flex gap-0.5 rounded-[6px] bg-[#e4e4e2] p-0.5 text-[12px]">
-              {(["comment", "interact"] as const).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMode(m)}
-                  className={`rounded-[5px] px-2.5 py-[3px] ${mode === m ? "bg-white shadow-[0_1px_1px_rgba(0,0,0,.06)]" : "text-[#55575c]"}`}
-                >
-                  {m === "comment" ? "Comment" : "Click through"}
-                </button>
-              ))}
+            <div className="ml-auto">
+              <Segmented
+                label="Preview mode"
+                value={mode}
+                onChange={setMode}
+                options={[
+                  { value: "comment", label: "Comment" },
+                  { value: "interact", label: "Click through" },
+                ]}
+              />
             </div>
           </div>
           <ViewportFrame viewport={viewport}>
@@ -142,7 +162,9 @@ export function ReviewScreen(props: Props) {
                   }}
                 />
               ))}
-              {draftPin && draftPin.viewport === viewport && <PinMark x={draftPin.x} y={draftPin.y} label="+" draft />}
+              {draftPin && draftPin.viewport === viewport && (
+                <PinMark key={`${draftPin.x}-${draftPin.y}`} x={draftPin.x} y={draftPin.y} label="+" draft />
+              )}
             </div>
           </ViewportFrame>
           <div className="text-center text-[12px] text-muted">
@@ -175,18 +197,23 @@ export function ReviewScreen(props: Props) {
 
           <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-3.5">
             <div className="label">Discussion</div>
+            <AnimatePresence initial={false}>
             {comments.map((c) => {
               const who = people.get(c.author_id);
               const n = pinNumber.get(c.id);
               return (
-                <button
+                <motion.button
+                  layout="position"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: DURATION.base, ease: EASE_OUT }}
                   key={c.id}
                   id={`c-${c.id}`}
                   onClick={() => {
                     if (n && c.viewport) setViewport(c.viewport as Viewport);
                     setActive(c.id);
                   }}
-                  className={`flex gap-[9px] rounded-[6px] text-left ${active === c.id ? "bg-note" : ""}`}
+                  className={`-mx-1.5 flex gap-[9px] rounded-[6px] px-1.5 py-1 text-left transition-colors duration-300 ${active === c.id ? "bg-note" : "hover:bg-stage"}`}
                 >
                   {n ? (
                     <span className="mt-0.5 flex h-[18px] w-[18px] flex-none items-center justify-center rounded-[50%_50%_50%_2px] bg-accent text-[10px] font-semibold text-white">
@@ -203,22 +230,30 @@ export function ReviewScreen(props: Props) {
                       {timeAgo(c.created_at)}
                     </div>
                   </div>
-                </button>
+                </motion.button>
               );
             })}
+            </AnimatePresence>
             {comments.length === 0 && <div className="text-[12px] text-muted">No comments yet.</div>}
           </div>
 
           {change.status !== "merged" && (
             <form onSubmit={submitComment} className="flex flex-col gap-1.5 border-t border-[#f0f0ee] px-4 py-3">
+              <AnimatePresence>
               {draftPin && (
-                <div className="flex items-center justify-between text-[11.5px] text-muted">
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="flex items-center justify-between overflow-hidden text-[11.5px] text-muted"
+                >
                   Pinned on the {draftPin.viewport} preview
                   <button type="button" className="underline" onClick={() => setDraftPin(null)}>
                     Unpin
                   </button>
-                </div>
+                </motion.div>
               )}
+              </AnimatePresence>
               <textarea
                 id="comment-box"
                 className="input text-[12.5px]"
@@ -231,7 +266,7 @@ export function ReviewScreen(props: Props) {
                 }}
               />
               <button className="btn btn-secondary self-end" disabled={pending || !text.trim()}>
-                Comment
+                <ActionLabel pending={busy === "comment"}>Comment</ActionLabel>
               </button>
             </form>
           )}
@@ -256,16 +291,33 @@ export function ReviewScreen(props: Props) {
             })}
           </div>
 
-          {error && <p className="mx-4 mb-2 rounded-[6px] bg-note px-3 py-2 text-[12px] text-note-ink">{error}</p>}
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                key={error}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mx-4 mb-2 rounded-[6px] bg-note px-3 py-2 text-[12px] text-note-ink"
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           <div className="flex flex-col gap-2 border-t border-[#f0f0ee] px-4 py-3">
             {change.status === "merged" ? (
-              <div className="rounded-[8px] bg-new px-3 py-2 text-[12.5px] text-new-ink">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={SPRING}
+                className="rounded-[8px] bg-new px-3 py-2 text-[12.5px] text-new-ink"
+              >
                 Added to Current {timeAgo(change.merged_at)}.{" "}
                 <Link href={`/p/${project.id}/history`} className="underline">
                   See History
                 </Link>
-              </div>
+              </motion.div>
             ) : (
               <>
                 {canDecide && (
@@ -280,16 +332,30 @@ export function ReviewScreen(props: Props) {
                       <button
                         className="btn btn-secondary flex-1"
                         disabled={pending}
-                        onClick={() => run(() => review(project.id, change.id, "changes_requested", decisionNote), () => setDecisionNote(""))}
+                        onClick={() =>
+                          run(
+                            "changes",
+                            () => review(project.id, change.id, "changes_requested", decisionNote),
+                            { title: "Changes requested", description: `${author ? firstName(author) : "They"} will see your note.` },
+                            () => setDecisionNote(""),
+                          )
+                        }
                       >
-                        Request changes
+                        <ActionLabel pending={busy === "changes"}>Request changes</ActionLabel>
                       </button>
                       <button
                         className="btn btn-primary flex-1"
                         disabled={pending}
-                        onClick={() => run(() => review(project.id, change.id, "approved", decisionNote), () => setDecisionNote(""))}
+                        onClick={() =>
+                          run(
+                            "approve",
+                            () => review(project.id, change.id, "approved", decisionNote),
+                            { title: "Approved", description: "It can now be added to Current." },
+                            () => setDecisionNote(""),
+                          )
+                        }
                       >
-                        Approve
+                        <ActionLabel pending={busy === "approve"}>Approve</ActionLabel>
                       </button>
                     </div>
                   </>
@@ -309,9 +375,16 @@ export function ReviewScreen(props: Props) {
                     className="btn btn-primary btn-lg"
                     disabled={pending || !canMerge}
                     title={canMerge ? undefined : "Needs an approval first"}
-                    onClick={() => run(() => addToCurrent(project.id, change.id))}
+                    onClick={() =>
+                      run("merge", () => addToCurrent(project.id, change.id), {
+                        title: `“${change.title}” added to Current`,
+                        description: "Everyone now sees this version.",
+                      })
+                    }
                   >
-                    Add to Current
+                    <ActionLabel pending={busy === "merge"} pendingText="Adding to Current…">
+                      Add to Current
+                    </ActionLabel>
                   </button>
                 )}
                 <span className="git-hint text-center">
@@ -342,15 +415,21 @@ function PinMark({
   onClick?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <span
-      role={onClick ? "button" : undefined}
-      onClick={onClick}
-      className={`absolute flex h-[22px] w-[22px] -translate-y-full items-center justify-center rounded-[50%_50%_50%_2px] text-[11px] font-semibold text-white shadow-[0_2px_6px_rgba(0,0,0,.2)] ${
-        draft ? "bg-ink" : "bg-accent"
-      } ${highlighted ? "scale-125 ring-2 ring-white" : ""} transition-transform`}
-      style={{ left: `${x * 100}%`, top: `${y * 100}%` }}
-    >
-      {label}
+    <span className="absolute" style={{ left: `${x * 100}%`, top: `${y * 100}%` }}>
+      <motion.span
+        role={onClick ? "button" : undefined}
+        onClick={onClick}
+        initial={{ opacity: 0, y: -14, scale: 0.6 }}
+        animate={{ opacity: 1, y: 0, scale: highlighted ? 1.2 : 1 }}
+        whileHover={{ scale: 1.12 }}
+        transition={SPRING}
+        style={{ originX: 0, originY: 1 }}
+        className={`absolute bottom-0 left-0 flex h-[22px] w-[22px] items-center justify-center rounded-[50%_50%_50%_2px] text-[11px] font-semibold text-white shadow-[0_2px_6px_rgba(0,0,0,.2)] ${
+          draft ? "bg-ink" : "bg-accent"
+        } ${highlighted ? "ring-2 ring-white" : ""}`}
+      >
+        {label}
+      </motion.span>
     </span>
   );
 }

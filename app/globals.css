@@ -158,3 +158,23 @@ textarea.input {
   border: 0 !important;
   border-radius: 0 !important;
 }
+
+/* Loading placeholders: a slow, soft sheen. */
+.skeleton {
+  background: linear-gradient(90deg, #efefed 0%, #f6f6f5 40%, #efefed 80%) 0 0 / 300% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+

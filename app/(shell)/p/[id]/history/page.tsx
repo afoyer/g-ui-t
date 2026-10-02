@@ -4,6 +4,7 @@ import { componentNames } from "@/lib/files";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, clockTime, Empty, firstName } from "@/components/ui";
 import { RestoreButton } from "./restore-button";
+import { Row, Stagger } from "@/components/motion/stagger";
 
 type Entry =
   | { kind: "merged"; at: string; id: string; title: string; actorId: string; approvers: string[]; components: string[]; sha: string | null; pr: number | null; changeId: string }
@@ -72,11 +73,11 @@ export default async function HistoryPage({ params, searchParams }: PageProps<"/
       {days.map(([day, list]) => (
         <section key={day} className="flex flex-col gap-2">
           <div className="label">{day}</div>
-          <div className="panel">
+          <Stagger className="panel">
             {list.map((e) => {
               const actor = people.get(e.actorId);
               return (
-                <div key={e.id} className="row items-start">
+                <Row key={e.id} id={String(e.id)} className="row items-start">
                   {e.kind === "merged" ? (
                     actor && <Avatar profile={actor} />
                   ) : (
@@ -125,10 +126,10 @@ export default async function HistoryPage({ params, searchParams }: PageProps<"/
                     )}
                   </div>
                   <span className="text-[12px] text-[#8b8d92]">{clockTime(e.at)}</span>
-                </div>
+                </Row>
               );
             })}
-          </div>
+          </Stagger>
         </section>
       ))}
     </div>

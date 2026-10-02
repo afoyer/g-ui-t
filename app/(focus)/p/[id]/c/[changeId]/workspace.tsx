@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, useTransition } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   SandpackCodeEditor,
   SandpackFileExplorer,
@@ -13,6 +14,10 @@ import { Avatar, Chip, clockTime, firstName, StatusBadge } from "@/components/ui
 import { TopBar } from "@/components/top-bar";
 import { ViewportFrame, ViewportToggle, type Viewport } from "@/components/workspace/viewport";
 import { componentNames, diffFiles } from "@/lib/files";
+import { DURATION, EASE_OUT } from "@/lib/motion";
+import { useFeedback } from "@/components/motion/feedback-provider";
+import { SaveStatus, type SaveStatusState } from "@/components/motion/save-status";
+import { ActionLabel } from "@/components/motion/spinner";
 import type { Change, FileMap, Profile } from "@/lib/types";
 import { bringInCurrent, restoreCheckpoint, saveCheckpoint, shareForReview, type Checkpoint, type SyncResult } from "./actions";
 
@@ -83,6 +88,8 @@ function WorkspaceInner({
   const [saved, setSaved] = useState<FileMap>(() => current);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
+  const { toast } = useFeedback();
   const [viewport, setViewport] = useState<Viewport>("desktop");
   const [showCode, setShowCode] = useState(true);
   const [checkpointName, setCheckpointName] = useState("");
@@ -97,6 +104,7 @@ function WorkspaceInner({
     if (res.error) {
       setError(res.error);
       setSaveState("error");
+      toast({ tone: "error", title: "Couldn't save to GitHub", description: res.error });
       return false;
     }
     setError(null);
@@ -108,8 +116,16 @@ function WorkspaceInner({
     }));
     if (snapshot) setSaved(snapshot);
     setSaveState("idle");
+    setJustSaved(true);
     return true;
-  }, [setSync]);
+  }, [setSync, toast]);
+
+  // The green "saved" check lingers briefly, then settles to a timestamp.
+  useEffect(() => {
+    if (!justSaved) return;
+    const t = setTimeout(() => setJustSaved(false), 2200);
+    return () => clearTimeout(t);
+  }, [justSaved]);
 
   const save = useCallback(
     async (message?: string) => {
@@ -147,25 +163,36 @@ function WorkspaceInner({
     startTransition(async () => {
       await save(name);
       setCheckpointName("");
+      toast({ tone: "success", title: "Checkpoint saved", description: name });
     });
   }
 
   function restore(cp: Checkpoint) {
     if (dirty && !confirmLoseWork()) return;
     startTransition(async () => {
+      const id = toast({ tone: "loading", title: `Restoring “${cp.message}”…` });
       const res = await restoreCheckpoint(project.id, change.id, cp.sha, cp.message);
-      if (apply(res) && res.files) reload(res.files);
+      if (apply(res) && res.files) {
+        reload(res.files);
+        toast({ id, tone: "success", title: "Checkpoint restored", description: "Your earlier work is back. Nothing was lost." });
+      } else toast({ id, tone: "error", title: "Couldn't restore", description: res.error });
     });
   }
 
   function updateFromCurrent() {
     startTransition(async () => {
       if (dirty) await save();
+      const id = toast({ tone: "loading", title: "Bringing in the latest Current…" });
       const res = await bringInCurrent(project.id, change.id);
-      if (apply(res) && res.files) reload(res.files);
+      if (apply(res) && res.files) {
+        reload(res.files);
+        toast({ id, tone: "success", title: "Up to date with Current" });
+      } else toast({ id, tone: "error", title: "Couldn't update", description: res.error });
     });
   }
 
+  const statusState: SaveStatusState =
+    saveState === "saving" ? "saving" : saveState === "error" ? "error" : dirty ? "dirty" : justSaved ? "saved" : "empty";
   const statusText =
     saveState === "saving"
       ? "Saving…"
@@ -173,9 +200,11 @@ function WorkspaceInner({
         ? "Not saved"
         : dirty
           ? "Unsaved changes"
-          : savedAt
-            ? `Saved ${clockTime(savedAt)}`
-            : "Nothing changed yet";
+          : justSaved
+            ? "Saved just now"
+            : savedAt
+              ? `Saved ${clockTime(savedAt)}`
+              : "Nothing changed yet";
 
   const components = componentNames(changedFiles);
 
@@ -192,12 +221,20 @@ function WorkspaceInner({
         }
         right={
           <>
-            <span className={`text-[12px] ${saveState === "error" ? "text-danger" : "text-muted"}`}>{statusText}</span>
-            {dirty && (
-              <button className="btn btn-ghost h-6 px-2 text-[12px]" onClick={() => startTransition(() => save())}>
-                Save now
-              </button>
-            )}
+            <SaveStatus state={statusState} text={statusText} />
+            <AnimatePresence>
+              {dirty && saveState !== "saving" && (
+                <motion.button
+                  initial={{ opacity: 0, x: 6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 6 }}
+                  className="btn btn-ghost h-6 px-2 text-[12px]"
+                  onClick={() => startTransition(() => save())}
+                >
+                  Save now
+                </motion.button>
+              )}
+            </AnimatePresence>
           </>
         }
       />
@@ -268,8 +305,17 @@ function WorkspaceInner({
             </div>
           </div>
 
+          <AnimatePresence initial={false}>
           {overlaps.map((o) => (
-            <div key={o.changeId} className="flex gap-[9px] border-b border-[#f0f0ee] bg-note px-[18px] py-3.5">
+            <motion.div
+              key={o.changeId}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: DURATION.slow, ease: EASE_OUT }}
+              className="overflow-hidden"
+            >
+            <div className="flex gap-[9px] border-b border-[#f0f0ee] bg-note px-[18px] py-3.5">
               {o.author && <Avatar profile={o.author} size={20} />}
               <div className="text-[12px] leading-[1.45]">
                 {o.author ? firstName(o.author) : "A teammate"} is also editing{" "}
@@ -279,25 +325,45 @@ function WorkspaceInner({
                 </Link>
               </div>
             </div>
+            </motion.div>
           ))}
+          </AnimatePresence>
 
+          <AnimatePresence initial={false}>
           {behindBy > 0 && (
-            <div className="flex flex-col gap-2 border-b border-[#f0f0ee] px-[18px] py-3.5">
+            <motion.div
+              key="behind"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: DURATION.slow, ease: EASE_OUT }}
+              className="flex flex-col gap-2 overflow-hidden border-b border-[#f0f0ee] px-[18px] py-3.5"
+            >
               <div className="text-[12px] leading-[1.45] text-ink-2">
                 Current has {behindBy} new {behindBy === 1 ? "update" : "updates"} since you started.
               </div>
               <button className="btn btn-secondary w-fit" disabled={pending} onClick={updateFromCurrent}>
-                Update from Current
+                <ActionLabel pending={pending} pendingText="Updating…">Update from Current</ActionLabel>
               </button>
               <span className="git-hint">git merge {project.defaultBranch}</span>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
 
           <div className="flex flex-1 flex-col gap-2 px-[18px] py-3.5">
             <div className="label">Checkpoints</div>
             <ol className="flex flex-col">
+              <AnimatePresence initial={false}>
               {checkpoints.map((cp, i) => (
-                <li key={cp.sha} className="group flex items-center justify-between gap-2 py-1 text-[12.5px]">
+                <motion.li
+                  key={cp.sha}
+                  layout="position"
+                  initial={{ opacity: 0, x: -8, backgroundColor: "oklch(0.96 0.03 155 / 1)" }}
+                  animate={{ opacity: 1, x: 0, backgroundColor: "oklch(0.96 0.03 155 / 0)" }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: DURATION.slow, ease: EASE_OUT, backgroundColor: { duration: 1.4 } }}
+                  className="group -mx-1.5 flex items-center justify-between gap-2 rounded-[5px] px-1.5 py-1 text-[12.5px]"
+                >
                   <span className="min-w-0 truncate" title={cp.message}>
                     {cp.message}
                   </span>
@@ -313,9 +379,10 @@ function WorkspaceInner({
                     )}
                     <span className="text-[#8b8d92]">{clockTime(cp.date)}</span>
                   </span>
-                </li>
+                </motion.li>
               ))}
-              <li className="py-1 text-[12.5px] text-muted">Started from Current</li>
+              </AnimatePresence>
+              <motion.li layout="position" className="py-1 text-[12.5px] text-muted">Started from Current</motion.li>
             </ol>
             <div className="text-[11.5px] text-muted">Any checkpoint can be restored.</div>
             {editable && (
@@ -327,13 +394,25 @@ function WorkspaceInner({
                   onChange={(e) => setCheckpointName(e.target.value)}
                 />
                 <button className="btn btn-secondary h-7 px-2 text-[12px]" disabled={pending || !checkpointName.trim()}>
-                  Save
+                  <ActionLabel pending={pending && saveState === "saving"}>Save</ActionLabel>
                 </button>
               </form>
             )}
           </div>
 
-          {error && <p className="mx-[18px] mb-2 rounded-[6px] bg-note px-3 py-2 text-[12px] text-note-ink">{error}</p>}
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                key={error}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mx-[18px] mb-2 rounded-[6px] bg-note px-3 py-2 text-[12px] text-note-ink"
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           <div className="flex flex-col gap-1.5 border-t border-[#f0f0ee] px-[18px] py-3.5">
             {change.status === "in_review" ? (
@@ -347,8 +426,17 @@ function WorkspaceInner({
                 onCancel={() => setSharing(false)}
                 onShare={async (ids, note) => {
                   if (dirty) await save();
+                  const id = toast({
+                    tone: "loading",
+                    title: "Sharing for review…",
+                    description: "Opening a pull request on GitHub",
+                    onNavigate: { tone: "success", title: "Shared for review", description: "Your reviewers have been notified." },
+                  });
                   const res = await shareForReview(project.id, change.id, ids, note);
-                  if (res?.error) setError(res.error);
+                  if (res?.error) {
+                    setError(res.error);
+                    toast({ id, tone: "error", title: "Couldn't share", description: res.error });
+                  }
                 }}
               />
             ) : (
@@ -396,7 +484,12 @@ function ShareForm({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <motion.div
+      className="flex flex-col gap-2"
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      transition={{ duration: DURATION.slow, ease: EASE_OUT }}
+    >
       <div className="label">Who should review?</div>
       {reviewers.map((r) => (
         <label key={r.id} className="flex items-center gap-2 text-[12.5px]">
@@ -425,10 +518,12 @@ function ShareForm({
           disabled={pending || !picked.length}
           onClick={() => startTransition(() => onShare(picked, note))}
         >
-          {pending ? "Sharing…" : "Share"}
+          <ActionLabel pending={pending} pendingText="Sharing…">
+            Share
+          </ActionLabel>
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

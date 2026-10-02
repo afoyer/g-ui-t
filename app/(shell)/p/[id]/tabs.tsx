@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
+import { SPRING } from "@/lib/motion";
 
 export function ProjectTabs({ projectId }: { projectId: string }) {
   const path = usePathname();
@@ -20,9 +22,12 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
           <Link
             key={t.href}
             href={t.href}
-            className={`border-b-2 pb-2.5 ${active ? "border-ink font-medium text-ink" : "border-transparent text-muted hover:text-ink"}`}
+            className={`relative pb-2.5 transition-colors ${active ? "font-medium text-ink" : "text-muted hover:text-ink"}`}
           >
             {t.label}
+            {active && (
+              <motion.span layoutId={`tab-underline-${projectId}`} className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-ink" transition={SPRING} />
+            )}
           </Link>
         );
       })}

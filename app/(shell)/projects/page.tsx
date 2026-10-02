@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getMembers, listChanges, listMyProjects } from "@/lib/data";
 import { requireUser } from "@/lib/session";
+import { Row, Stagger } from "@/components/motion/stagger";
 import { Empty, ProjectSwatch, timeAgo } from "@/components/ui";
 import { TEMPLATES } from "@/templates";
 
@@ -17,9 +18,9 @@ export default async function ProjectsPage() {
           New Project
         </Link>
       </div>
-      <div className="panel">
+      <Stagger className="panel">
         {projects.map((p, i) => (
-          <Link key={p.id} href={`/p/${p.id}`} className="row hover:bg-[#fafaf9]">
+          <Row key={p.id} id={p.id} href={`/p/${p.id}`} className="row hover:bg-[#fafaf9]">
             <ProjectSwatch id={p.id} size={10} />
             <div className="min-w-0 flex-1">
               <div className="font-medium">{p.name}</div>
@@ -31,10 +32,10 @@ export default async function ProjectsPage() {
             <span className="git-hint">
               {p.repo_owner}/{p.repo_name}
             </span>
-          </Link>
+          </Row>
         ))}
         {projects.length === 0 && <Empty>No projects yet.</Empty>}
-      </div>
+      </Stagger>
     </div>
   );
 }

@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { DURATION, EASE_OUT } from "@/lib/motion";
+import { useFeedback } from "@/components/motion/feedback-provider";
+import { ActionLabel } from "@/components/motion/spinner";
 import { COMING_SOON, TEMPLATES } from "@/templates";
 import { slugify } from "@/lib/files";
 import type { ProjectType, Role } from "@/lib/types";
@@ -18,6 +22,7 @@ export function CreateForm({ githubLogin }: { githubLogin: string }) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const { toast } = useFeedback();
 
   const t = TEMPLATES[type];
   const repoName = slugify(name) || "your-project";
@@ -33,9 +38,18 @@ export function CreateForm({ githubLogin }: { githubLogin: string }) {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const id = toast({
+      tone: "loading",
+      title: `Setting up ${name.trim()}…`,
+      description: "Creating a private GitHub repo and adding the starter files",
+      onNavigate: { tone: "success", title: `${name.trim()} is ready`, description: "Start a Change to begin designing." },
+    });
     startTransition(async () => {
       const res = await createProject({ name, description, type, startFrom, invites: people });
-      if (res?.error) setError(res.error);
+      if (res?.error) {
+        setError(res.error);
+        toast({ id, tone: "error", title: "Couldn't create the project", description: res.error });
+      }
     });
   }
 
@@ -82,10 +96,26 @@ export function CreateForm({ githubLogin }: { githubLogin: string }) {
               { value: "invite", label: "Invite people" },
             ]}
           />
+          <AnimatePresence initial={false}>
           {sharing === "invite" && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: DURATION.slow, ease: EASE_OUT }}
+              className="overflow-hidden"
+            >
             <div className="mt-3 flex flex-col gap-2">
+              <AnimatePresence initial={false}>
               {invites.map((inv, i) => (
-                <div key={inv.login} className="flex items-center gap-2 rounded-[6px] border border-line px-2.5 py-1.5">
+                <motion.div
+                  key={inv.login}
+                  layout
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0, marginTop: -8 }}
+                  className="flex items-center gap-2 rounded-[6px] border border-line px-2.5 py-1.5"
+                >
                   <span className="flex-1 font-medium">@{inv.login}</span>
                   <select
                     className="rounded-[5px] bg-transparent text-[12px] text-ink-2"
@@ -100,8 +130,9 @@ export function CreateForm({ githubLogin }: { githubLogin: string }) {
                   <button type="button" className="text-[12px] text-faint hover:text-ink" onClick={() => setInvites(invites.filter((_, j) => j !== i))}>
                     Remove
                   </button>
-                </div>
+                </motion.div>
               ))}
+              </AnimatePresence>
               <div className="flex gap-2">
                 <input
                   className="input"
@@ -120,27 +151,45 @@ export function CreateForm({ githubLogin }: { githubLogin: string }) {
                 </button>
               </div>
             </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </Field>
       </div>
 
       <aside className="flex h-fit flex-col gap-4 rounded-[10px] bg-stage p-5 md:sticky md:top-6">
         <div className="text-[13px] font-semibold">We&apos;ll set this up for you</div>
-        <ul className="flex flex-col gap-3">
+        <motion.ul layout className="flex flex-col gap-3">
           <Check title={startFrom === "template" ? t.stack : `Empty ${t.stack} project`} sub={startFrom === "template" ? `From the ${t.label} template` : "Just a README to start"} />
           <Check title="A live preview" sub="Opens as you make changes" />
           <Check title="Saved to GitHub, private" hint={`repo ${githubLogin}/${repoName} · main`} />
+          <AnimatePresence initial={false}>
           {people.length > 0 && (
             <Check
+              key="invites"
               title={`Invites for ${people.map((p) => "@" + p.login).join(", ")}`}
               sub="They'll see it on their Home"
               hint="collaborator invitations"
             />
           )}
-        </ul>
-        {error && <p className="rounded-[6px] bg-note px-3 py-2 text-[12px] text-note-ink">{error}</p>}
+          </AnimatePresence>
+        </motion.ul>
+        <AnimatePresence>
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-[6px] bg-note px-3 py-2 text-[12px] text-note-ink"
+            >
+              {error}
+            </motion.p>
+          )}
+        </AnimatePresence>
         <button className="btn btn-primary btn-lg w-full" disabled={pending || !name.trim()}>
-          {pending ? "Setting up…" : "Create Project"}
+          <ActionLabel pending={pending} pendingText="Setting up…">
+            Create Project
+          </ActionLabel>
         </button>
         <p className="-mt-2 text-center text-[11.5px] text-muted">Takes a few seconds</p>
       </aside>
@@ -171,18 +220,19 @@ function Choice({
   onClick?: () => void;
 }) {
   return (
-    <button
+    <motion.button
       type="button"
       disabled={disabled}
       onClick={onClick}
       aria-pressed={selected}
+      whileTap={disabled ? undefined : { scale: 0.98 }}
       className={`w-[170px] rounded-[8px] border px-3 py-2.5 text-left transition-colors ${
         selected ? "border-ink bg-white shadow-[0_0_0_1px_var(--color-ink)]" : "border-line bg-white hover:border-[#c4c4c1]"
       } disabled:cursor-default disabled:opacity-45 disabled:hover:border-line`}
     >
       <div className="font-medium">{title}</div>
       <div className="mt-0.5 text-[12px] leading-snug text-muted">{sub}</div>
-    </button>
+    </motion.button>
   );
 }
 
@@ -204,11 +254,16 @@ function Segmented({
           disabled={o.disabled}
           title={o.disabled ? "Coming soon" : undefined}
           onClick={() => onChange(o.value)}
-          className={`rounded-[5px] px-3 py-1 ${
-            value === o.value ? "bg-white shadow-[0_1px_1px_rgba(0,0,0,.06)]" : "text-[#55575c]"
-          } disabled:opacity-40`}
+          className={`relative rounded-[5px] px-3 py-1 ${value === o.value ? "text-ink" : "text-[#55575c]"} disabled:opacity-40`}
         >
-          {o.label}
+          {value === o.value && (
+            <motion.span
+              layoutId={`seg-${options.map((x) => x.value).join("-")}`}
+              className="absolute inset-0 rounded-[5px] bg-white shadow-[0_1px_1px_rgba(0,0,0,.06)]"
+              transition={{ type: "spring", stiffness: 520, damping: 34 }}
+            />
+          )}
+          <span className="relative">{o.label}</span>
         </button>
       ))}
     </div>
@@ -217,15 +272,32 @@ function Segmented({
 
 function Check({ title, sub, hint }: { title: string; sub?: string; hint?: string }) {
   return (
-    <li className="flex gap-2.5">
+    <motion.li
+      layout
+      initial={{ opacity: 0, x: -6 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -6 }}
+      className="flex gap-2.5"
+    >
       <span className="mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-full bg-shared text-[10px] text-white">
         ✓
       </span>
       <div className="min-w-0">
-        <div className="font-medium">{title}</div>
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.div
+            key={title}
+            className="font-medium"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: DURATION.fast }}
+          >
+            {title}
+          </motion.div>
+        </AnimatePresence>
         {sub && <div className="text-[12px] text-muted">{sub}</div>}
         {hint && <div className="git-hint truncate">{hint}</div>}
       </div>
-    </li>
+    </motion.li>
   );
 }

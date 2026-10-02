@@ -2,7 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { ProjectSwatch } from "@/components/ui";
+import { SPRING } from "@/lib/motion";
+
+/** The grey pill that glides to whichever item is active. */
+function ActivePill() {
+  return (
+    <motion.span
+      layoutId="sidebar-active"
+      className="absolute inset-0 -z-10 rounded-[6px] bg-sidebar-active"
+      transition={SPRING}
+    />
+  );
+}
 
 type Props = {
   reviewCount: number;
@@ -16,10 +29,11 @@ export function Nav({ reviewCount, projects }: Props) {
     return (
       <Link
         href={href}
-        className={`flex items-center justify-between rounded-[6px] px-2 py-[5px] ${
-          active ? "bg-sidebar-active font-medium text-ink" : "hover:bg-[#efefed]"
+        className={`relative isolate flex items-center justify-between rounded-[6px] px-2 py-[5px] transition-colors ${
+          active ? "font-medium text-ink" : "hover:bg-[#efefed]"
         }`}
       >
+        {active && <ActivePill />}
         {label}
         {extra}
       </Link>
@@ -39,23 +53,35 @@ export function Nav({ reviewCount, projects }: Props) {
           <div key={p.id}>
             <Link
               href={`/p/${p.id}`}
-              className={`flex items-center gap-2 rounded-[6px] px-2 py-[5px] ${
-                open ? "bg-sidebar-active font-medium text-ink" : "hover:bg-[#efefed]"
+              className={`relative isolate flex items-center gap-2 rounded-[6px] px-2 py-[5px] transition-colors ${
+                open ? "font-medium text-ink" : "hover:bg-[#efefed]"
               }`}
             >
+              {open && <ActivePill />}
               <ProjectSwatch id={p.id} />
               <span className="truncate">{p.name}</span>
             </Link>
-            {open &&
-              p.activeChanges.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/p/${p.id}/c/${c.id}`}
-                  className="ml-[18px] block truncate border-l-[1.5px] border-[#cfd0cd] py-1 pl-2.5 text-[12px] text-muted hover:text-ink"
+            <AnimatePresence initial={false}>
+              {open && p.activeChanges.length > 0 && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
                 >
-                  {c.title}
-                </Link>
-              ))}
+                  {p.activeChanges.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/p/${p.id}/c/${c.id}`}
+                      className="ml-[18px] block truncate border-l-[1.5px] border-[#cfd0cd] py-1 pl-2.5 text-[12px] text-muted transition-colors hover:text-ink"
+                    >
+                      {c.title}
+                    </Link>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         );
       })}

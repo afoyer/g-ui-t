@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Row, Stagger } from "@/components/motion/stagger";
 import { getProfiles, listMyInReview, listReviewsForMe } from "@/lib/data";
 import { requireUser } from "@/lib/session";
 import { Avatar, Empty, firstName, SectionLabel, StatusBadge, timeAgo } from "@/components/ui";
@@ -13,11 +13,11 @@ export default async function ReviewsPage() {
       <h1 className="text-[20px] font-semibold tracking-[-0.01em]">Reviews</h1>
       <section className="flex flex-col gap-2">
         <SectionLabel>Waiting on you</SectionLabel>
-        <div className="panel">
+        <Stagger className="panel">
           {waiting.map((c) => {
             const by = people.get(c.author_id);
             return (
-              <Link key={c.id} href={`/p/${c.project_id}/c/${c.id}/review`} className="row hover:bg-[#fafaf9]">
+              <Row key={c.id} id={c.id} href={`/p/${c.project_id}/c/${c.id}/review`} className="row hover:bg-[#fafaf9]">
                 {by && <Avatar profile={by} />}
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">{c.title}</div>
@@ -27,17 +27,17 @@ export default async function ReviewsPage() {
                   </div>
                 </div>
                 <span className="btn btn-primary h-[26px] text-[12px]">Review</span>
-              </Link>
+              </Row>
             );
           })}
           {waiting.length === 0 && <Empty>Nobody is waiting on you.</Empty>}
-        </div>
+        </Stagger>
       </section>
       <section className="flex flex-col gap-2">
         <SectionLabel>Yours, out for review</SectionLabel>
-        <div className="panel">
+        <Stagger className="panel">
           {mine.map((c) => (
-            <Link key={c.id} href={`/p/${c.project_id}/c/${c.id}/review`} className="row hover:bg-[#fafaf9]">
+            <Row key={c.id} id={c.id} href={`/p/${c.project_id}/c/${c.id}/review`} className="row hover:bg-[#fafaf9]">
               <div className="min-w-0 flex-1">
                 <div className="font-medium">{c.title}</div>
                 <div className="text-[12px] text-muted">
@@ -45,10 +45,10 @@ export default async function ReviewsPage() {
                 </div>
               </div>
               <StatusBadge status={c.status} />
-            </Link>
+            </Row>
           ))}
           {mine.length === 0 && <Empty>You haven&apos;t shared anything for review.</Empty>}
-        </div>
+        </Stagger>
       </section>
     </div>
   );

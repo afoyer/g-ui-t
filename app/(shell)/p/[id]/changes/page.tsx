@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { getMembers, listChanges } from "@/lib/data";
 import { requireUser } from "@/lib/session";
 import { componentNames } from "@/lib/files";
 import { Avatar, Empty, firstName, StatusBadge, timeAgo } from "@/components/ui";
+import { Row, Stagger } from "@/components/motion/stagger";
 
 export default async function ChangesTab({ params }: PageProps<"/p/[id]/changes">) {
   const { id } = await params;
@@ -13,12 +13,12 @@ export default async function ChangesTab({ params }: PageProps<"/p/[id]/changes"
   const done = changes.filter((c) => c.status === "merged" || c.status === "closed");
 
   const list = (items: typeof changes) => (
-    <div className="panel">
+    <Stagger className="panel">
       {items.map((c) => {
         const who = people.get(c.author_id);
         const href = c.author_id === me.id && c.status !== "merged" ? `/p/${id}/c/${c.id}` : `/p/${id}/c/${c.id}/review`;
         return (
-          <Link key={c.id} href={href} className="row hover:bg-[#fafaf9]">
+          <Row key={c.id} id={String(c.id)} href={href} className="row hover:bg-[#fafaf9]">
             {who && <Avatar profile={who} />}
             <div className="min-w-0 flex-1">
               <div className="truncate font-medium">{c.title}</div>
@@ -29,11 +29,11 @@ export default async function ChangesTab({ params }: PageProps<"/p/[id]/changes"
               </div>
             </div>
             <StatusBadge status={c.status} />
-          </Link>
+          </Row>
         );
       })}
       {items.length === 0 && <Empty>None.</Empty>}
-    </div>
+    </Stagger>
   );
 
   return (

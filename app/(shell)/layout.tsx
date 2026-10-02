@@ -25,7 +25,7 @@ export default async function ShellLayout({ children }: LayoutProps<"/">) {
     <div className="flex h-full">
       <Sidebar me={me} reviewCount={reviews.length} projects={navProjects} />
       <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
-      <LiveRefresh projectIds={projects.map((p) => p.id)} />
+      <LiveRefresh projectIds={projects.map((p) => p.id)} meId={me.id} />
     </div>
   );
 }

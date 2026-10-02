@@ -45,7 +45,7 @@ export default async function ChangePage({ params }: PageProps<"/p/[id]/c/[chang
         overlaps={overlaps}
         reviewers={members.filter((m) => m.id !== me.id && m.role === "editor")}
       />
-      <LiveRefresh projectIds={[id]} />
+      <LiveRefresh projectIds={[id]} meId={me.id} />
     </>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useFeedback } from "@/components/motion/feedback-provider";
+import { ActionLabel } from "@/components/motion/spinner";
 import type { Role } from "@/lib/types";
 import { invitePerson } from "../actions";
 
@@ -9,15 +11,20 @@ export function InviteForm({ projectId }: { projectId: string }) {
   const [role, setRole] = useState<Role>("editor");
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const { toast } = useFeedback();
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setMessage(null);
     startTransition(async () => {
       const res = await invitePerson(projectId, login, role);
-      if (res.error) setMessage({ tone: "error", text: res.error });
-      else {
-        setMessage({ tone: "ok", text: `Invited @${login.replace(/^@/, "")}. They'll see it on their Home.` });
+      const who = `@${login.replace(/^@/, "")}`;
+      if (res.error) {
+        setMessage({ tone: "error", text: res.error });
+        toast({ tone: "error", title: `Couldn't invite ${who}`, description: res.error });
+      } else {
+        setMessage({ tone: "ok", text: `Invited ${who}. They'll see it on their Home.` });
+        toast({ tone: "success", title: `Invite sent to ${who}`, description: "GitHub emails them too." });
         setLogin("");
       }
     });
@@ -32,7 +39,9 @@ export function InviteForm({ projectId }: { projectId: string }) {
           <option value="viewer">Viewer</option>
         </select>
         <button className="btn btn-primary h-8" disabled={pending || !login.trim()}>
-          {pending ? "Inviting…" : "Invite"}
+          <ActionLabel pending={pending} pendingText="Inviting…">
+            Invite
+          </ActionLabel>
         </button>
       </div>
       {message && (

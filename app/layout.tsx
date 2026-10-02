@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { FeedbackProvider } from "@/components/motion/feedback-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +27,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: hintsScript }} />
       </head>
-      <body className="h-full">{children}</body>
+      <body className="h-full">
+        <FeedbackProvider>{children}</FeedbackProvider>
+      </body>
     </html>
   );
 }

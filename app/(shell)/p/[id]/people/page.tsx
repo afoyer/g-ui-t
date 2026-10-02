@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/session";
 import { Avatar, SectionLabel } from "@/components/ui";
 import { InviteForm } from "./invite-form";
 import { InviteControls, MemberControls } from "./member-controls";
+import { Row, Stagger } from "@/components/motion/stagger";
 
 const STATUS_TEXT: Record<InviteStatus, string> = {
   waiting: "Invited · hasn't accepted on GitHub yet",
@@ -30,9 +31,9 @@ export default async function PeopleTab({ params }: PageProps<"/p/[id]/people">)
     <div className="grid grid-cols-1 gap-6 px-[30px] py-6 lg:grid-cols-[1fr_380px]">
       <section className="flex flex-col gap-2">
         <SectionLabel>Members</SectionLabel>
-        <div className="panel">
+        <Stagger className="panel">
           {members.map((m) => (
-            <div key={m.id} className="row">
+            <Row key={m.id} id={String(m.id)} className="row">
               <Avatar profile={m} />
               <div className="min-w-0 flex-1">
                 <div className="font-medium">
@@ -46,12 +47,12 @@ export default async function PeopleTab({ params }: PageProps<"/p/[id]/people">)
               ) : (
                 <span className="text-[12px] text-muted">{m.id === project.owner_id ? "Owner" : m.role === "editor" ? "Editor" : "Viewer"}</span>
               )}
-            </div>
+            </Row>
           ))}
           {invites.map((i) => {
             const status = statuses.get(i.id) ?? "unknown";
             return (
-              <div key={i.id} className="row">
+              <Row key={i.id} id={String(i.id)} className="row">
                 <span className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-full border border-dashed border-control text-[10px] text-muted">
                   ?
                 </span>
@@ -64,10 +65,10 @@ export default async function PeopleTab({ params }: PageProps<"/p/[id]/people">)
                 {isOwner && (
                   <InviteControls projectId={id} inviteId={i.id} login={i.github_login} role={i.role} declined={status === "declined"} />
                 )}
-              </div>
+              </Row>
             );
           })}
-        </div>
+        </Stagger>
         {invites.some((i) => statuses.get(i.id) === "needs_sign_in") && (
           <p className="text-[12px] text-muted">
             People who accepted on GitHub join automatically as soon as they open G-ui-t.

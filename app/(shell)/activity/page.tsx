@@ -2,19 +2,9 @@ import Link from "next/link";
 import { getProfiles, listActivity, listMyProjects } from "@/lib/data";
 import { requireUser } from "@/lib/session";
 import { Avatar, Empty, firstName, ProjectSwatch, timeAgo } from "@/components/ui";
-import type { Activity } from "@/lib/types";
+import { ACTIVITY_VERB as VERB } from "@/lib/activity-text";
+import { Row, Stagger } from "@/components/motion/stagger";
 
-const VERB: Record<Activity["kind"], string> = {
-  created: "created the project",
-  change_started: "started",
-  shared: "shared for review",
-  approved: "approved",
-  changes_requested: "asked for changes on",
-  merged: "added to Current",
-  restored: "restored Current to before",
-  joined: "joined the project",
-  commented: "commented on",
-};
 
 export default async function ActivityPage() {
   const me = await requireUser();
@@ -26,13 +16,13 @@ export default async function ActivityPage() {
   return (
     <div className="flex max-w-[860px] flex-col gap-5 px-[30px] py-[26px]">
       <h1 className="text-[20px] font-semibold tracking-[-0.01em]">Activity</h1>
-      <div className="panel">
+      <Stagger className="panel">
         {activity.map((a) => {
           const who = people.get(a.actor_id);
           const changeId = a.payload.change_id as string | undefined;
           const title = a.payload.title as string | undefined;
           return (
-            <div key={a.id} className="row">
+            <Row key={a.id} id={(a.payload.change_id as string | undefined) ?? String(a.id)} className="row">
               {who && <Avatar profile={who} />}
               <div className="min-w-0 flex-1">
                 <span className="font-medium">{who ? (who.id === me.id ? "You" : firstName(who)) : "Someone"}</span>{" "}
@@ -54,11 +44,11 @@ export default async function ActivityPage() {
                   · {timeAgo(a.created_at)}
                 </div>
               </div>
-            </div>
+            </Row>
           );
         })}
         {activity.length === 0 && <Empty>No activity yet.</Empty>}
-      </div>
+      </Stagger>
     </div>
   );
 }

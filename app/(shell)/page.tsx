@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { autoJoinAccepted } from "@/lib/members";
 import { Avatar, Empty, firstName, PreviewTile, SectionLabel, StatusDot, statusLabel, timeAgo } from "@/components/ui";
 import { TEMPLATES } from "@/templates";
+import { Row, Stagger } from "@/components/motion/stagger";
 
 export default async function HomePage() {
   const me = await requireUser();
@@ -63,9 +64,9 @@ export default async function HomePage() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.35fr_1fr]">
         <section className="flex flex-col gap-2">
           <SectionLabel>Continue working</SectionLabel>
-          <div className="panel">
+          <Stagger className="panel">
             {continuing.map((c) => (
-              <div key={c.id} className="row">
+              <Row key={c.id} id={c.id}>
                 <StatusDot status={c.status === "draft" ? "editing" : c.status} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{c.title}</div>
@@ -76,19 +77,19 @@ export default async function HomePage() {
                 <Link href={`/p/${c.project_id}/c/${c.id}`} className="btn btn-secondary h-[26px] px-2.5 text-[12px]">
                   Resume
                 </Link>
-              </div>
+              </Row>
             ))}
             {continuing.length === 0 && <Empty>Nothing in progress. Open a project and start a Change.</Empty>}
-          </div>
+          </Stagger>
         </section>
 
         <section className="flex flex-col gap-2">
           <SectionLabel>Needs you</SectionLabel>
-          <div className="panel">
+          <Stagger className="panel">
             {invites.map((inv) => {
               const by = people.get(inv.invited_by);
               return (
-                <Link key={inv.id} href={`/join/${inv.id}`} className="row hover:bg-[#fafaf9]">
+                <Row key={inv.id} id={inv.id} href={`/join/${inv.id}`} className="row hover:bg-[#fafaf9]">
                   {by && <Avatar profile={by} />}
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">{inv.projects.name}</div>
@@ -96,27 +97,28 @@ export default async function HomePage() {
                       {by ? firstName(by) : "Someone"} invited you · you&apos;ll be an {inv.role === "editor" ? "Editor" : "Viewer"}
                     </div>
                   </div>
-                </Link>
+                </Row>
               );
             })}
             {reviews.map((c) => {
               const by = people.get(c.author_id);
               return (
-                <Link key={c.id} href={`/p/${c.project_id}/c/${c.id}/review`} className="row hover:bg-[#fafaf9]">
+                <Row key={c.id} id={c.id} href={`/p/${c.project_id}/c/${c.id}/review`} className="row hover:bg-[#fafaf9]">
                   {by && <Avatar profile={by} />}
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{c.title}</div>
                     <div className="text-[12px] text-muted">{by ? firstName(by) : "Someone"} asked for your review</div>
                   </div>
-                </Link>
+                </Row>
               );
             })}
             {(comments ?? []).map((cm) => {
               const by = people.get(cm.author_id);
               const change = continuing.find((c) => c.id === cm.change_id)!;
               return (
-                <Link
+                <Row
                   key={cm.id}
+                  id={cm.id}
                   href={`/p/${change.project_id}/c/${change.id}/review`}
                   className="row hover:bg-[#fafaf9]"
                 >
@@ -127,11 +129,11 @@ export default async function HomePage() {
                       {by ? firstName(by) : "Someone"} left a comment · {timeAgo(cm.created_at)}
                     </div>
                   </div>
-                </Link>
+                </Row>
               );
             })}
             {invites.length + reviews.length + (comments?.length ?? 0) === 0 && <Empty>You&apos;re all caught up.</Empty>}
-          </div>
+          </Stagger>
         </section>
       </div>
 
@@ -145,11 +147,16 @@ export default async function HomePage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Stagger className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {projects.slice(0, 8).map((p, i) => {
               const n = memberCounts[i]?.length ?? 1;
               return (
-                <Link key={p.id} href={`/p/${p.id}`} className="panel overflow-hidden hover:border-[#c4c4c1]">
+                <Row
+                  key={p.id}
+                  id={p.id}
+                  href={`/p/${p.id}`}
+                  className="panel overflow-hidden transition-[box-shadow,border-color] duration-200 hover:border-[#c4c4c1] hover:shadow-[0_6px_18px_rgba(0,0,0,.06)]"
+                >
                   <PreviewTile label="current preview" className="h-[78px]" />
                   <div className="px-2.5 py-2">
                     <div className="truncate font-medium">{p.name}</div>
@@ -157,10 +164,10 @@ export default async function HomePage() {
                       {TEMPLATES[p.type].label} · {n === 1 ? "Just you" : `${n} people`}
                     </div>
                   </div>
-                </Link>
+                </Row>
               );
             })}
-          </div>
+          </Stagger>
         )}
       </section>
     </div>

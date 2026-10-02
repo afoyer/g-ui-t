@@ -5,6 +5,7 @@ import { findOverlaps } from "@/lib/overlap";
 import { componentNames } from "@/lib/files";
 import { Avatar, Chip, Empty, firstName, PreviewTile, SectionLabel, StatusDot, statusLabel, timeAgo } from "@/components/ui";
 import { StartChangeButton } from "./start-change";
+import { Row, Stagger } from "@/components/motion/stagger";
 
 export default async function ProjectOverview({ params }: PageProps<"/p/[id]">) {
   const { id } = await params;
@@ -61,9 +62,9 @@ export default async function ProjectOverview({ params }: PageProps<"/p/[id]">) 
 
         <section className="flex flex-col gap-2">
           <SectionLabel>Your work</SectionLabel>
-          <div className="panel">
+          <Stagger className="panel">
             {mine.map((c) => (
-              <div key={c.id} className="row">
+              <Row key={c.id} id={c.id}>
                 <StatusDot status={c.status === "draft" ? "editing" : c.status} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{c.title}</div>
@@ -76,7 +77,7 @@ export default async function ProjectOverview({ params }: PageProps<"/p/[id]">) 
                 <Link href={`/p/${id}/c/${c.id}`} className="btn btn-secondary h-[26px] px-2.5 text-[12px]">
                   Open
                 </Link>
-              </div>
+              </Row>
             ))}
             {mine.length === 0 && (
               <div className="flex flex-col items-center gap-3 py-6">
@@ -84,18 +85,18 @@ export default async function ProjectOverview({ params }: PageProps<"/p/[id]">) 
                 <StartChangeButton projectId={id} />
               </div>
             )}
-          </div>
+          </Stagger>
         </section>
 
         <section className="flex flex-col gap-2">
           <SectionLabel>Team</SectionLabel>
-          <div className="panel">
+          <Stagger className="panel">
             {members
               .filter((m) => m.id !== me.id)
               .map((m) => {
                 const work = others.filter((c) => c.author_id === m.id);
                 return (
-                  <div key={m.id} className="row">
+                  <Row key={m.id} id={work[0]?.id ?? m.id}>
                     <Avatar profile={m} />
                     <div className="min-w-0 flex-1">
                       {work.length === 0 ? (
@@ -116,7 +117,7 @@ export default async function ProjectOverview({ params }: PageProps<"/p/[id]">) 
                         ))
                       )}
                     </div>
-                  </div>
+                  </Row>
                 );
               })}
             {members.length <= 1 && (
@@ -124,7 +125,7 @@ export default async function ProjectOverview({ params }: PageProps<"/p/[id]">) 
                 Just you so far. <Link className="underline" href={`/p/${id}/people`}>Invite people</Link>
               </Empty>
             )}
-          </div>
+          </Stagger>
         </section>
       </div>
 
