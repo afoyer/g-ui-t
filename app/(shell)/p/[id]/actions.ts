@@ -4,9 +4,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { attempt, logActivity, type ActionResult } from "@/lib/actions";
 import { getOctokit } from "@/lib/github/client";
-import { createBranch, FriendlyError, inviteCollaborator, restoreCurrentBefore } from "@/lib/github/repo";
+import { createBranch, FriendlyError, inviteCollaborator, restoreCurrentBefore, revokeAccess } from "@/lib/github/repo";
 import { slugify } from "@/lib/files";
-import { getProject } from "@/lib/data";
+import { getMembers, getProject } from "@/lib/data";
 import { requireUser } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/types";
@@ -89,5 +89,57 @@ export async function restoreCurrent(projectId: string, changeId: string): Promi
     await supabase.from("projects").update({ current_sha: sha }).eq("id", projectId);
     await logActivity(projectId, me.id, "restored", { title: change.title, sha, change_id: changeId });
     revalidatePath(`/p/${projectId}`, "layout");
+  });
+}
+
+async function asOwner(projectId: string) {
+  const me = await requireUser();
+  const project = await getProject(projectId);
+  if (project.owner_id !== me.id) throw new FriendlyError("Only the project's owner can manage the team.");
+  return { me, project };
+}
+
+export async function changeRole(projectId: string, userId: string, role: Role): Promise<ActionResult> {
+  return attempt(async () => {
+    const { me, project } = await asOwner(projectId);
+    if (userId === me.id) throw new FriendlyError("You own this project, so you're always an Editor.");
+    const member = (await getMembers(projectId)).find((m) => m.id === userId);
+    if (!member) throw new FriendlyError("That person isn't on this project.");
+    const gh = await getOctokit();
+    // Re-inviting an existing collaborator just updates their permission.
+    await inviteCollaborator(gh, repoOf(project), member.github_login, role);
+    const supabase = await createClient();
+    const { error } = await supabase.from("project_members").update({ role }).match({ project_id: projectId, user_id: userId });
+    if (error) throw error;
+    revalidatePath(`/p/${projectId}/people`);
+  });
+}
+
+export async function removeMember(projectId: string, userId: string): Promise<ActionResult> {
+  return attempt(async () => {
+    const { me, project } = await asOwner(projectId);
+    if (userId === me.id) throw new FriendlyError("You can't remove yourself from your own project.");
+    const member = (await getMembers(projectId)).find((m) => m.id === userId);
+    if (!member) throw new FriendlyError("That person isn't on this project.");
+    const gh = await getOctokit();
+    await revokeAccess(gh, repoOf(project), member.github_login);
+    const supabase = await createClient();
+    const { error } = await supabase.from("project_members").delete().match({ project_id: projectId, user_id: userId });
+    if (error) throw error;
+    revalidatePath(`/p/${projectId}`, "layout");
+  });
+}
+
+export async function withdrawInvite(projectId: string, inviteId: string): Promise<ActionResult> {
+  return attempt(async () => {
+    const { project } = await asOwner(projectId);
+    const supabase = await createClient();
+    const { data: invite } = await supabase.from("invites").select("github_login").eq("id", inviteId).maybeSingle();
+    if (!invite) throw new FriendlyError("That invite is already gone.");
+    const gh = await getOctokit();
+    await revokeAccess(gh, repoOf(project), invite.github_login);
+    const { error } = await supabase.from("invites").delete().eq("id", inviteId);
+    if (error) throw error;
+    revalidatePath(`/p/${projectId}/people`);
   });
 }

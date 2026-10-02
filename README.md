@@ -17,7 +17,7 @@ Every project is a private GitHub repo under the creator's account. Supabase sto
 ## Setup
 
 1. **Supabase.** Create a project, then copy `.env.local.example` to `.env.local` and fill in the project URL and anon key.
-2. **Database.** Paste `supabase/migrations/0001_init.sql` into the Supabase SQL editor and run it.
+2. **Database.** In the Supabase SQL editor, run `supabase/migrations/0001_init.sql`, then `0002_member_management.sql`, in that order.
 3. **GitHub OAuth app.** Go to GitHub, then Settings → Developer settings → OAuth Apps → New.
    - Homepage URL: `http://localhost:3000`
    - Callback URL: `https://<your-project>.supabase.co/auth/v1/callback`

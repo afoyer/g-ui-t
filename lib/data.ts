@@ -109,10 +109,10 @@ export async function listPendingInvites(login: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("invites")
-    .select("*, projects(name, description, owner_id)")
+    .select("*, projects(name, description, owner_id, repo_owner, repo_name)")
     .eq("github_login", login.toLowerCase())
     .is("accepted_at", null);
-  return (data ?? []) as (Invite & { projects: { name: string; description: string | null; owner_id: string } })[];
+  return (data ?? []) as (Invite & { projects: { name: string; description: string | null; owner_id: string; repo_owner: string; repo_name: string } })[];
 }
 
 export async function listProjectInvites(projectId: string) {

@@ -9,16 +9,18 @@ import {
   listReviewsForMe,
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
+import { autoJoinAccepted } from "@/lib/members";
 import { Avatar, Empty, firstName, PreviewTile, SectionLabel, StatusDot, statusLabel, timeAgo } from "@/components/ui";
 import { TEMPLATES } from "@/templates";
 
 export default async function HomePage() {
   const me = await requireUser();
-  const [projects, continuing, reviews, invites] = await Promise.all([
+  // Invites already accepted on GitHub become memberships first, so they show up as projects.
+  const invites = await autoJoinAccepted(me.id, await listPendingInvites(me.github_login));
+  const [projects, continuing, reviews] = await Promise.all([
     listMyProjects(me.id),
     listMyOpenChanges(me.id),
     listReviewsForMe(me.id),
-    listPendingInvites(me.github_login),
   ]);
 
   // Recent comments from others on my open Changes.

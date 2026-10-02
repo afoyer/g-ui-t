@@ -239,6 +239,31 @@ export async function inviteCollaborator(gh: GH, repo: Repo, username: string, r
   }
 }
 
+/**
+ * Where each invited login stands on GitHub: already a collaborator,
+ * still has a pending invitation, or neither (declined or expired).
+ * Listing invitations needs admin rights, so non-owners only learn "joined".
+ */
+export async function invitationStatuses(gh: GH, repo: Repo) {
+  const collaborators = await gh.rest.repos
+    .listCollaborators({ ...repo, affiliation: "direct", per_page: 100 })
+    .then((r) => new Set(r.data.map((c) => c.login.toLowerCase())))
+    .catch(() => new Set<string>());
+  const pending = await gh.rest.repos
+    .listInvitations({ ...repo, per_page: 100 })
+    .then((r) => new Map(r.data.filter((i) => i.invitee).map((i) => [i.invitee!.login.toLowerCase(), i.id])))
+    .catch(() => null);
+  return { collaborators, pending };
+}
+
+/** Removes someone's access, or withdraws their pending invitation. */
+export async function revokeAccess(gh: GH, repo: Repo, username: string) {
+  const { pending } = await invitationStatuses(gh, repo);
+  const invitationId = pending?.get(username.toLowerCase());
+  if (invitationId) await gh.rest.repos.deleteInvitation({ ...repo, invitation_id: invitationId });
+  else await gh.rest.repos.removeCollaborator({ ...repo, username }).catch(() => undefined);
+}
+
 /** Accepts the pending GitHub invitation for this repo, if there is one. */
 export async function acceptInvitation(gh: GH, repo: Repo) {
   const { data } = await gh.rest.repos.listInvitationsForAuthenticatedUser({ per_page: 100 });
