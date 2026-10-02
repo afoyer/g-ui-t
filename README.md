@@ -22,7 +22,7 @@ Every project is a private GitHub repo under the creator's account. Supabase sto
    - Homepage URL: `http://localhost:3000`
    - Callback URL: `https://<your-project>.supabase.co/auth/v1/callback`
 4. **Enable GitHub sign-in.** In Supabase, open Authentication → Sign In / Providers → GitHub, enable it, and paste the client ID and secret.
-5. **Allow the redirect.** In Supabase, open Authentication → URL Configuration and add `http://localhost:3000/auth/callback` to the redirect URLs.
+5. **Allow the redirect.** In Supabase, open Authentication → URL Configuration. Set **Site URL** to where the app lives (for example `https://g-ui-t.vercel.app`), and add `<that URL>/auth/callback` plus `http://localhost:3000/auth/callback` to **Redirect URLs**. If the URL isn't on that list, Supabase quietly sends people to the Site URL instead. When deployed, also set `NEXT_PUBLIC_SITE_URL` on your host.
 6. Run `npm install && npm run dev`.
 
 To try collaboration, you need a second GitHub account, for example in a private window.

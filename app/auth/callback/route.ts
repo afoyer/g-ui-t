@@ -1,12 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { siteOrigin } from "@/lib/site-url";
 
 /**
  * GitHub → Supabase → here. Supabase only hands us the GitHub token once,
  * so we save it (and the profile) before redirecting into the app.
  */
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const origin = siteOrigin(request);
   const code = searchParams.get("code");
   const next = safeNext(searchParams.get("next"));
 
