@@ -1,0 +1,16 @@
+{
+  "name": "g-ui-t-link",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local companion for G-ui-t: syncs a Change to a folder and runs a terminal. Not published.",
+  "type": "module",
+  "scripts": {
+    "start": "node bin.mjs",
+    "postinstall": "node fix-pty.mjs"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "node-pty": "^1.0.0",
+    "ws": "^8.18.0"
+  }
+}

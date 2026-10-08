@@ -8,7 +8,7 @@ function subscribe(cb: () => void) {
   return () => obs.disconnect();
 }
 
-/** "Tweaks" from the mockup: show or hide the small Git terms. */
+/** Show or hide the small Git terms (branches, commits, repos) shown next to friendly labels. */
 export function HintsToggle() {
   const on = useSyncExternalStore(
     subscribe,
@@ -28,13 +28,17 @@ export function HintsToggle() {
   return (
     <button
       onClick={toggle}
-      className="flex w-full items-center justify-between rounded-[6px] px-2 py-[5px] text-[12px] text-muted hover:bg-[#efefed]"
+      className="flex w-full items-center justify-between gap-2 rounded-[6px] px-2 py-[5px] text-left text-[12px] text-ink-2 hover:bg-[#efefed]"
       aria-pressed={on}
+      title="Shows branch names, commits and GitHub terms next to the friendly labels. Handy when talking to developers."
     >
-      Show Git terms
+      <span className="flex flex-col">
+        <span>Developer details</span>
+        <span className="text-[11px] leading-tight text-muted">Branches, commits, GitHub terms</span>
+      </span>
       <span
-        className="relative h-[14px] w-[26px] rounded-[10px] transition-colors"
-        style={{ background: on ? "var(--color-ink)" : "#c9c9c6" }}
+        className="relative h-[14px] w-[26px] flex-none rounded-[10px] transition-colors"
+        style={{ background: on ? "var(--color-ink)" : "#b5b6b9" }}
       >
         <span
           className="absolute top-[2px] h-[10px] w-[10px] rounded-full bg-white transition-all"

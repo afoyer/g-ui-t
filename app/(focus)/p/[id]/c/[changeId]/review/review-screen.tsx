@@ -117,9 +117,9 @@ export function ReviewScreen(props: Props) {
               href={`${project.repoUrl}/pull/${change.pr_number}/files`}
               target="_blank"
               rel="noreferrer"
-              className="text-[12px] text-[#55575c] underline"
+              className="git-hint underline"
             >
-              View code · {change.changed_files.length} files
+              View code on GitHub · {change.changed_files.length} files
             </a>
           ) : null
         }

@@ -36,7 +36,7 @@ export function componentName(path: string) {
   const stem = base.replace(/\.[^.]+$/, "");
   if (/(^|\/)components\//.test(clean)) return stem;
   if (base.endsWith(".html")) return `${stem} page`;
-  if (/^App\.(t|j)sx?$/.test(base)) return "App";
+  if (/^App\.(t|j)sx?$/.test(base)) return "Main screen";
   return base;
 }
 

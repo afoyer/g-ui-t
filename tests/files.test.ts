@@ -20,7 +20,7 @@ describe("componentName", () => {
     expect(componentName("/components/CartSummary.tsx")).toBe("CartSummary");
     expect(componentName("src/components/ui/Chip.jsx")).toBe("Chip");
     expect(componentName("/about.html")).toBe("about page");
-    expect(componentName("/App.tsx")).toBe("App");
+    expect(componentName("/App.tsx")).toBe("Main screen");
     expect(componentName("/styles.css")).toBe("styles.css");
     expect(componentNames(["/components/A.tsx", "components/A.tsx", "/styles.css"])).toEqual(["A", "styles.css"]);
   });

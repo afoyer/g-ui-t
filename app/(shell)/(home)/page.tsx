@@ -10,9 +10,10 @@ import {
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { autoJoinAccepted } from "@/lib/members";
-import { Avatar, Empty, firstName, PreviewTile, SectionLabel, StatusDot, statusLabel, timeAgo } from "@/components/ui";
+import { Avatar, Empty, firstName, SectionLabel, StatusDot, statusLabel, timeAgo } from "@/components/ui";
 import { TEMPLATES } from "@/templates";
 import { Row, Stagger } from "@/components/motion/stagger";
+import { ProjectThumb } from "@/components/workspace/project-thumb";
 
 export default async function HomePage() {
   const me = await requireUser();
@@ -157,7 +158,8 @@ export default async function HomePage() {
                   href={`/p/${p.id}`}
                   className="panel overflow-hidden transition-[box-shadow,border-color] duration-200 hover:border-[#c4c4c1] hover:shadow-[0_6px_18px_rgba(0,0,0,.06)]"
                 >
-                  <PreviewTile label="current preview" className="h-[78px]" />
+                  {/* Live previews are heavy; the first row gets them. */}
+                  {i < 4 ? <ProjectThumb project={p} className="h-[96px]" /> : <div className="hatch h-[96px]" />}
                   <div className="px-2.5 py-2">
                     <div className="truncate font-medium">{p.name}</div>
                     <div className="text-[12px] text-muted">

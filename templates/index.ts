@@ -29,7 +29,7 @@ export default function App() {
       <header>
         <p className="eyebrow">Prototype</p>
         <h1>Hello, designer</h1>
-        <p className="lede">Edit any file on the left. Every pause saves a checkpoint.</p>
+        <p className="lede">Ask Claude on the left to change anything. Every change is saved.</p>
       </header>
       <section className="grid">
         <Card title="Lisbon" detail="3 nights · Oct 12" />

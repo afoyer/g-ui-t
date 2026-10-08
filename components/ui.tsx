@@ -117,7 +117,8 @@ export function Empty({ children }: { children: React.ReactNode }) {
   return <div className="px-3 py-6 text-center text-[12.5px] text-muted">{children}</div>;
 }
 
-export function PreviewTile({ label, className = "" }: { label: string; className?: string }) {
+/** Striped stand-in while a real preview loads, or when it can't. */
+export function PreviewTile({ label, className = "" }: { label?: string; className?: string }) {
   return (
     <div className={`hatch flex items-center justify-center font-mono text-[10.5px] text-faint ${className}`}>
       {label}
@@ -133,10 +134,8 @@ export function timeAgo(iso: string | null | undefined) {
   if (m < 60) return `${m} min ago`;
   const h = Math.round(m / 60);
   if (h < 24) return `${h}h ago`;
-  const d = Math.round(h / 24);
-  if (d === 1) return "yesterday";
-  if (d < 7) return `${d} days ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  // Past a day, "4 days ago" on every row stops telling things apart; give the real time.
+  return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 export function clockTime(iso: string | null | undefined) {

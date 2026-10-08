@@ -41,7 +41,7 @@ export function CreateForm({ githubLogin }: { githubLogin: string }) {
     const id = toast({
       tone: "loading",
       title: `Setting up ${name.trim()}…`,
-      description: "Creating a private GitHub repo and adding the starter files",
+      description: "Creating a private space and adding the starter files",
       onNavigate: { tone: "success", title: `${name.trim()} is ready`, description: "Start a Change to begin designing." },
     });
     startTransition(async () => {
@@ -79,12 +79,16 @@ export function CreateForm({ githubLogin }: { githubLogin: string }) {
             value={startFrom}
             onChange={(v) => setStartFrom(v as NewProject["startFrom"])}
             options={[
-              { value: "template", label: "Template" },
-              { value: "empty", label: "Blank" },
+              { value: "template", label: "Starter files" },
+              { value: "empty", label: "Empty" },
               { value: "folder", label: "A folder", disabled: true },
               { value: "github", label: "From GitHub", disabled: true },
             ]}
           />
+          <p className="text-[12px] text-muted">
+            {startFrom === "template" ? `Comes with a small ${t.label.toLowerCase()} to change.` : "Just a README. Add everything yourself."}{" "}
+            Bringing in an existing folder or GitHub project is coming soon.
+          </p>
         </Field>
 
         <Field label="Who can open it?">
@@ -96,6 +100,11 @@ export function CreateForm({ githubLogin }: { githubLogin: string }) {
               { value: "invite", label: "Invite people" },
             ]}
           />
+          <p className="text-[12px] text-muted">
+            {sharing === "me"
+              ? "Only you, for now. You can invite people later from the project's People tab."
+              : "Add teammates now. They'll see the project on their Home and can make Changes or just look."}
+          </p>
           <AnimatePresence initial={false}>
           {sharing === "invite" && (
             <motion.div
@@ -162,7 +171,7 @@ export function CreateForm({ githubLogin }: { githubLogin: string }) {
         <motion.ul layout className="flex flex-col gap-3">
           <Check title={startFrom === "template" ? t.stack : `Empty ${t.stack} project`} sub={startFrom === "template" ? `From the ${t.label} template` : "Just a README to start"} />
           <Check title="A live preview" sub="Opens as you make changes" />
-          <Check title="Saved to GitHub, private" hint={`repo ${githubLogin}/${repoName} · main`} />
+          <Check title="Saved privately" sub="Only people you invite can open it" hint={`private GitHub repo ${githubLogin}/${repoName} · main`} />
           <AnimatePresence initial={false}>
           {people.length > 0 && (
             <Check

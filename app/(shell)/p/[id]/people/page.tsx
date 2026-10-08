@@ -79,7 +79,7 @@ export default async function PeopleTab({ params }: PageProps<"/p/[id]/people">)
         <SectionLabel>Invite someone</SectionLabel>
         <div className="panel p-4">
           <p className="mb-3 text-[12.5px] text-muted">
-            Editors can start Changes, review and add work to Current. Viewers can look and comment.
+            <b className="font-medium text-ink-2">Editors</b> make and approve Changes. <b className="font-medium text-ink-2">Viewers</b> look and comment.
           </p>
           <InviteForm projectId={id} />
         </div>

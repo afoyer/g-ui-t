@@ -132,3 +132,55 @@ export async function listActivity(projectIds: string[], limit = 30) {
     .limit(limit);
   return (data ?? []) as Activity[];
 }
+
+/**
+ * Reviews that have wrapped up and involve me: my Changes that were added or
+ * closed, and Changes I've already given an answer on.
+ */
+export async function listMyFinishedReviews(userId: string, limit = 10) {
+  const supabase = await createClient();
+  const [{ data: mine }, { data: answered }] = await Promise.all([
+    supabase
+      .from("changes")
+      .select("*, projects(name)")
+      .eq("author_id", userId)
+      .in("status", ["merged", "closed"])
+      .not("pr_number", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(limit),
+    supabase
+      .from("review_requests")
+      .select("state, changes!inner(*, projects(name))")
+      .eq("reviewer_id", userId)
+      .in("state", ["approved", "changes_requested"])
+      .limit(limit),
+  ]);
+  type Row = Change & { projects: { name: string } };
+  const rows: { change: Row; myAnswer: ReviewRequest["state"] | null }[] = [
+    ...((mine ?? []) as Row[]).map((change) => ({ change, myAnswer: null })),
+    ...(answered ?? []).map((r) => ({ change: r.changes as unknown as Row, myAnswer: r.state as ReviewRequest["state"] })),
+  ];
+  const seen = new Set<string>();
+  return rows
+    .filter((r) => !seen.has(r.change.id) && seen.add(r.change.id))
+    .sort((a, b) => b.change.updated_at.localeCompare(a.change.updated_at))
+    .slice(0, limit);
+}
+
+/** Who each Change is still waiting on, by change id. */
+export async function listWaitingReviewers(changeIds: string[]) {
+  const out = new Map<string, Profile[]>();
+  if (!changeIds.length) return out;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("review_requests")
+    .select("change_id, reviewer_id")
+    .in("change_id", changeIds)
+    .eq("state", "waiting");
+  const people = await getProfiles((data ?? []).map((r) => r.reviewer_id));
+  for (const r of data ?? []) {
+    const p = people.get(r.reviewer_id);
+    if (p) out.set(r.change_id, [...(out.get(r.change_id) ?? []), p]);
+  }
+  return out;
+}
