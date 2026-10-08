@@ -32,6 +32,24 @@ To try collaboration, you need a second GitHub account, for example in a private
 - `npm run dev` starts the dev server.
 - `npm test` runs the unit tests (Vitest).
 - `npm run lint` and `npm run build`.
+- `npm run link` starts the local companion (see below).
+
+## Local folder + Claude Code (experimental)
+
+You can open a Change as a real folder on your computer and run [Claude Code](https://docs.claude.com/en/docs/claude-code) in a terminal inside the workspace. It only works locally. The companion app lives in `link/`, is not published, and runs from this repo.
+
+1. Install the companion once: `npm install --prefix link`.
+2. Make sure your machine can clone the project's repo (for example `gh auth login`), and that the `claude` CLI is installed.
+3. Start it with `npm run dev` and, in a second terminal, `npm run link`. It prints a pairing code.
+4. In a Change, click **Open on my computer** and paste the code.
+
+- Each Change gets its own clone in `~/G-ui-t/<repo>@<branch>`.
+- Edits sync both ways: browser edits are written to disk, and edits from VS Code or Claude show up in the editor and preview. Either way, they become Checkpoints through the usual autosave. After each save, the clone's HEAD is moved to the new commit, so `git status` stays clean.
+- The **Claude** tab next to **Code** opens a shell in that folder and starts `claude`. If `claude` isn't installed, you still get a plain shell.
+- The companion only listens on `127.0.0.1:47321`. It only accepts connections from `http://localhost:3000` (add more with `npm run link -- --origin <url>`) that also carry the pairing code.
+- The link is hidden in production builds unless `NEXT_PUBLIC_LOCAL_LINK=1` is set.
+- Running Claude in the cloud (no install) is coming soon.
+- Files deleted on disk disappear from the editor, but the deletion isn't committed yet.
 
 ## Layout
 

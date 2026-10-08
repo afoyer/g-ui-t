@@ -35,7 +35,12 @@ export default async function ChangePage({ params }: PageProps<"/p/[id]/c/[chang
   return (
     <>
       <Workspace
-        project={{ id, name: project.name, defaultBranch: project.default_branch }}
+        project={{
+          id,
+          name: project.name,
+          defaultBranch: project.default_branch,
+          repo: { owner: repo.owner, name: repo.repo },
+        }}
         change={change}
         template={TEMPLATES[project.type].sandpack}
         initialFiles={files}

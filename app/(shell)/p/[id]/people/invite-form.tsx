@@ -24,7 +24,7 @@ export function InviteForm({ projectId }: { projectId: string }) {
         toast({ tone: "error", title: `Couldn't invite ${who}`, description: res.error });
       } else {
         setMessage({ tone: "ok", text: `Invited ${who}. They'll see it on their Home.` });
-        toast({ tone: "success", title: `Invite sent to ${who}`, description: "GitHub emails them too." });
+        toast({ tone: "success", title: `Invite sent to ${who}`, description: "They'll get an email too." });
         setLogin("");
       }
     });
@@ -47,7 +47,10 @@ export function InviteForm({ projectId }: { projectId: string }) {
       {message && (
         <p className={`text-[12px] ${message.tone === "error" ? "text-danger" : "text-new-ink"}`}>{message.text}</p>
       )}
-      <span className="git-hint">adds a repo collaborator on GitHub</span>
+      <span className="text-[12px] text-muted">
+        They&apos;ll get an invite on their Home and by email.{" "}
+        <span className="git-hint">Adds them as a collaborator on the GitHub repo.</span>
+      </span>
     </form>
   );
 }

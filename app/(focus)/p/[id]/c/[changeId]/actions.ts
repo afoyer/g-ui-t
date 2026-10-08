@@ -127,3 +127,14 @@ export async function shareForReview(
   if (res.error) return res;
   redirect(`/p/${projectId}/c/${changeId}/review`);
 }
+
+/** Current's files, for showing it next to this Change. */
+export async function loadCurrentFiles(projectId: string, changeId: string): Promise<{ files?: FileMap; error?: string }> {
+  await requireUser();
+  try {
+    const { project, gh, repo } = await loadChangeContext(projectId, changeId);
+    return { files: await readFiles(gh, repo, project.default_branch) };
+  } catch {
+    return { error: "Couldn't load Current. Try again in a moment." };
+  }
+}

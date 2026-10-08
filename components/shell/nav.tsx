@@ -19,7 +19,11 @@ function ActivePill() {
 
 type Props = {
   reviewCount: number;
-  projects: { id: string; name: string; activeChanges: { id: string; title: string }[] }[];
+  projects: {
+    id: string;
+    name: string;
+    activeChanges: { id: string; title: string; state: { text: string; tone: "waiting" | "attention" } | null }[];
+  }[];
 };
 
 export function Nav({ reviewCount, projects }: Props) {
@@ -49,6 +53,8 @@ export function Nav({ reviewCount, projects }: Props) {
       <div className="px-2 pt-4 pb-1 text-[11px] text-[#8b8d92]">Projects</div>
       {projects.map((p) => {
         const open = path.startsWith(`/p/${p.id}`);
+        // Changes that need someone stay visible even when the project is closed.
+        const shown = open ? p.activeChanges : p.activeChanges.filter((c) => c.state);
         return (
           <div key={p.id}>
             <Link
@@ -62,7 +68,7 @@ export function Nav({ reviewCount, projects }: Props) {
               <span className="truncate">{p.name}</span>
             </Link>
             <AnimatePresence initial={false}>
-              {open && p.activeChanges.length > 0 && (
+              {shown.length > 0 && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
@@ -70,13 +76,23 @@ export function Nav({ reviewCount, projects }: Props) {
                   transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                   className="overflow-hidden"
                 >
-                  {p.activeChanges.map((c) => (
+                  {shown.map((c) => (
                     <Link
                       key={c.id}
                       href={`/p/${p.id}/c/${c.id}`}
-                      className="ml-[18px] block truncate border-l-[1.5px] border-[#cfd0cd] py-1 pl-2.5 text-[12px] text-muted transition-colors hover:text-ink"
+                      className="ml-[18px] block border-l-[1.5px] border-[#cfd0cd] py-1 pl-2.5 text-[12px] text-muted transition-colors hover:text-ink"
                     >
-                      {c.title}
+                      <span className="block truncate">{c.title}</span>
+                      {c.state && (
+                        <span
+                          className={`flex items-center gap-1 truncate text-[11px] ${
+                            c.state.tone === "attention" ? "text-danger" : "text-note-ink"
+                          }`}
+                        >
+                          <span className="h-[5px] w-[5px] flex-none rounded-full bg-current" />
+                          {c.state.text}
+                        </span>
+                      )}
                     </Link>
                   ))}
                 </motion.div>

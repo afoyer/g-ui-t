@@ -3,6 +3,7 @@ import { getMembers, listActivity, listChanges } from "@/lib/data";
 import { componentNames } from "@/lib/files";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, clockTime, Empty, firstName } from "@/components/ui";
+import { groupByDay } from "@/lib/dates";
 import { RestoreButton } from "./restore-button";
 import { Row, Stagger } from "@/components/motion/stagger";
 
@@ -48,20 +49,23 @@ export default async function HistoryPage({ params, searchParams }: PageProps<"/
     .filter((e) => typeof who !== "string" || e.actorId === who)
     .sort((a, b) => b.at.localeCompare(a.at));
 
-  const days = groupByDay(entries);
+  const days = groupByDay(entries, (e) => e.at);
 
   return (
     <div className="flex flex-col gap-5 px-[30px] py-6">
       <div className="flex flex-wrap items-center gap-2 text-[12px]">
         <span className="label mr-1">What&apos;s been added to Current</span>
+        <span className="ml-auto mr-1 text-muted">Show changes by</span>
+        <div className="flex gap-0.5 rounded-[6px] bg-[#e4e4e2] p-0.5">
         <FilterLink href={`/p/${id}/history`} active={typeof who !== "string"}>
-          Everyone
+          Anyone
         </FilterLink>
         {members.map((m) => (
           <FilterLink key={m.id} href={`/p/${id}/history?who=${m.id}`} active={who === m.id}>
             {firstName(m)}
           </FilterLink>
         ))}
+        </div>
       </div>
 
       {days.length === 0 && (
@@ -102,7 +106,7 @@ export default async function HistoryPage({ params, searchParams }: PageProps<"/
                         </div>
                         <div className="mt-1.5 flex items-center gap-4">
                           {e.sha && (
-                            <Link href={`/p/${id}/compare?merge=${e.sha}&title=${encodeURIComponent(e.title)}`} className="text-[12px] underline-offset-2 hover:underline">
+                            <Link href={`/p/${id}/compare?change=${e.changeId}`} className="text-[12px] underline-offset-2 hover:underline">
                               Compare
                             </Link>
                           )}
@@ -140,22 +144,10 @@ function FilterLink({ href, active, children }: { href: string; active: boolean;
   return (
     <Link
       href={href}
-      className={`rounded-[20px] px-2.5 py-1 ${active ? "bg-ink text-white" : "bg-chip text-ink-2 hover:bg-[#e8e8e6]"}`}
+      aria-current={active ? "true" : undefined}
+      className={`rounded-[5px] px-2.5 py-[3px] ${active ? "bg-white text-ink shadow-[0_1px_1px_rgba(0,0,0,.06)]" : "text-[#55575c] hover:text-ink"}`}
     >
       {children}
     </Link>
   );
-}
-
-function groupByDay(entries: Entry[]) {
-  const groups = new Map<string, Entry[]>();
-  const today = new Date().toDateString();
-  const yesterday = new Date(Date.now() - 86_400_000).toDateString();
-  for (const e of entries) {
-    const d = new Date(e.at).toDateString();
-    const label =
-      d === today ? "Today" : d === yesterday ? "Yesterday" : new Date(e.at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    groups.set(label, [...(groups.get(label) ?? []), e]);
-  }
-  return [...groups.entries()];
 }

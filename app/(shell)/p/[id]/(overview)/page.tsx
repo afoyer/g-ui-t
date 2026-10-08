@@ -3,9 +3,10 @@ import { getMembers, getProject, listActivity, listChanges, listReviewsForMe } f
 import { requireUser } from "@/lib/session";
 import { findOverlaps } from "@/lib/overlap";
 import { componentNames } from "@/lib/files";
-import { Avatar, Chip, Empty, firstName, PreviewTile, SectionLabel, StatusDot, statusLabel, timeAgo } from "@/components/ui";
-import { StartChangeButton } from "./start-change";
+import { Avatar, Chip, Empty, firstName, SectionLabel, StatusDot, statusLabel, timeAgo } from "@/components/ui";
+import { StartChangeButton } from "../start-change";
 import { Row, Stagger } from "@/components/motion/stagger";
+import { ProjectThumb } from "@/components/workspace/project-thumb";
 
 export default async function ProjectOverview({ params }: PageProps<"/p/[id]">) {
   const { id } = await params;
@@ -32,7 +33,9 @@ export default async function ProjectOverview({ params }: PageProps<"/p/[id]">) 
     <div className="grid grid-cols-1 gap-6 px-[30px] py-6 xl:grid-cols-[1fr_320px]">
       <div className="flex flex-col gap-6">
         <section className="panel flex overflow-hidden">
-          <PreviewTile label="current preview" className="w-[220px] flex-none" />
+          <Link href={`/p/${id}/preview`} className="w-[240px] flex-none border-r border-line-soft" title="Open preview">
+            <ProjectThumb project={project} className="h-full min-h-[140px]" />
+          </Link>
           <div className="flex flex-1 flex-col gap-1.5 p-4">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-shared" />
@@ -69,8 +72,8 @@ export default async function ProjectOverview({ params }: PageProps<"/p/[id]">) 
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{c.title}</div>
                   <div className="text-[12px] text-muted">
-                    {c.status === "draft" ? "Editing" : statusLabel(c.status)} · {c.changed_files.length} files ·{" "}
-                    {c.status === "draft" ? "not shared yet" : `updated ${timeAgo(c.updated_at)}`}
+                    {c.status === "draft" ? "Draft" : statusLabel(c.status)} ·{" "}
+                    {componentNames(c.changed_files).join(", ") || "no edits yet"} · {timeAgo(c.updated_at)}
                     <span className="git-hint"> · {c.branch}</span>
                   </div>
                 </div>
